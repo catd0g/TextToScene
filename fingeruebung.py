@@ -1,6 +1,7 @@
 import os
 import json
 import spacy
+import networkx
 import matplotlib.pyplot as plt
 import xml.etree.ElementTree as ET
 
@@ -89,8 +90,12 @@ def auswertung():
     list3.sort(key=lambda x: int(x[0]))
     list4 = [x.get('relType') for x in tree.findall('.//TAGS/QSLINK')]
     list4 = count_elements(list4)
+    list5 = [x.get('text') for x in tree.findall('.//TAGS/MOTION')]
+    list5 = count_elements(list5)
+    list5.sort(key=lambda x: int(x[1]))
+    list5.reverse()
     print("Auswertung:")
-    print(" -- Anzahl PoS Tags:")
+    print("Anzahl PoS Tags:")
     for x in list2:
         print(x)
     print('\n')    
@@ -100,12 +105,12 @@ def auswertung():
     print("Signals: " + str([i[1] for i in list1 if i[0] == 'SPATIAL_SIGNAL'].pop() + [i[1] for i in list1 if i[0]== 'MOTION_SIGNAL'].pop()))
     print("QsLinks: " + str([i[1] for i in list1 if i[0] == 'QSLINK'].pop()))
     print("OLinks: " + str([i[1] for i in list1 if i[0] == 'OLINK'].pop()))
-    print('\n -- QsLink Typen:')
+    print('\nQsLink Typen:')
     for x in list4:
         print(x)
-    #plt.plot([int(x[0]) for x in list3],[x[1] for x in list3])
-    #plt.show()
-    print('\n QSLINKS und OLINKS Trigger:')
+    plt.plot([int(x[0]) for x in list3],[x[1] for x in list3])
+    plt.show()
+    print('\nQSLINKS und OLINKS Trigger:')
     entries = tree.findall('.//ENTRY')
     links = []
     spatial_signals = []
@@ -127,7 +132,8 @@ def auswertung():
                 spatial_signals.append([ss])
     for e in [(links[x],spatial_signals[x]) for x in range(0,len(links))]:
         print(e)
+    print("Die 5 häufigsten MOVEMENT Verben:")
+    print(list5[:5])
     
-#retrieve_data('Traning\RFC\Bicycles.xml')
-#write_xml()
+write_xml()
 auswertung()
