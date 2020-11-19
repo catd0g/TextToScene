@@ -105,6 +105,28 @@ def auswertung():
         print(x)
     #plt.plot([int(x[0]) for x in list3],[x[1] for x in list3])
     #plt.show()
+    print('\n QSLINKS und OLINKS Trigger:')
+    entries = tree.findall('.//ENTRY')
+    links = []
+    spatial_signals = []
+    for e in entries:
+        qsolinks = e.findall('.//TAGS/QSLINK')
+        qsolinks += e.findall('.//TAGS/OLINK')
+        ssignal = e.findall('.//TAGS/SPATIAL_SIGNAL')
+        for qs in qsolinks:
+            tmp = [x.get('text') for x in ssignal if x.get('id') == qs.get('trigger')]
+            ss = "" if len(tmp) == 0 else tmp.pop()
+            try:
+                pos = links.index(qs.get('relType'))
+                try:
+                    pos2 = spatial_signals[pos].index(ss)
+                except ValueError:
+                    spatial_signals[pos].append(ss)
+            except ValueError:
+                links.append(qs.get('relType'))
+                spatial_signals.append([ss])
+    for e in [(links[x],spatial_signals[x]) for x in range(0,len(links))]:
+        print(e)
     
 #retrieve_data('Traning\RFC\Bicycles.xml')
 #write_xml()
