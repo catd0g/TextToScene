@@ -55,7 +55,7 @@ def retrieve_data(file):
     for sent in doc.sents:
         g = ET.SubElement(f,'SENTENCE')
         g.text = str(sent.text)
-        g.set('length', str(len(sent.text)))
+        g.set('length', str(sent.__len__()))
         g.tail = '\n'
     return a
 
