@@ -1,7 +1,7 @@
 import os
 import json
 import spacy
-import networkx
+import networkx as nx
 import matplotlib.pyplot as plt
 import xml.etree.ElementTree as ET
 
@@ -108,8 +108,6 @@ def auswertung():
     print('\nQsLink Typen:')
     for x in list4:
         print(x)
-    plt.plot([int(x[0]) for x in list3],[x[1] for x in list3])
-    plt.show()
     print('\nQSLINKS und OLINKS Trigger:')
     entries = tree.findall('.//ENTRY')
     links = []
@@ -134,6 +132,53 @@ def auswertung():
         print(e)
     print("Die 5 häufigsten MOVEMENT Verben:")
     print(list5[:5])
+    plt.plot([int(x[0]) for x in list3],[x[1] for x in list3])
+    plt.show()
+
+def visualize(file):
+    tree = ET.parse(file)
+    places = tree.findall('.//PLACE')
+    spatials = tree.findall('.//SPATIAL_ENTITY')
+    nodetags = places + spatials
+    metalinks = tree.findall('.//METALINK')
+    qsolinks = tree.findall('.//QSLINK')
+    qsolinks += tree.findall('.//OLINK')
+    for ml in metalinks:
+        id = ml.get('fromID')
+        id2 = ml.get('toID')
+        for e in nodetags:
+            if e.get('id') == id:
+                nodetags.remove(e)
+                break
+        for l in qsolinks:
+            if l.get('fromID') == id:
+                l.set('fromID',id2)
+            if l.get('toID') == id:
+                l.set('toID',id2)
+    nodes = [(x.tag,x.get('id'),x.get('text')) for x in nodetags]
+    edges = [(x.tag,x.get('relType'),x.get('fromID'),x.get('toID')) for x in qsolinks]
+    node_ids = [x[1] for x in nodes]
+    edge_list_sanitized = []
+    for e in edges:
+        if (e[2] in node_ids) and (e[3] in node_ids):
+            edge_list_sanitized.append(e)
+    edges=edge_list_sanitized
+    G = nx.DiGraph()
+    G.add_nodes_from(node_ids)
+    edge_labelmap = []
+    for e in edges:
+        G.add_edge(e[2],e[3])
+        edge_labelmap.append(((e[2],e[3]),e[1]))
+    nodes_cmap = [('green' if x[0] == 'PLACE' else 'lightblue') for x in nodes]
+    nodes_labelmap = dict([(x[1],x[2]) for x in nodes])
+    pos = nx.shell_layout(G)
+    edges_cmap = [('red' if x[0] == 'QSLINK' else 'purple') for x in edges]
+    nx.draw(G,pos, node_color=nodes_cmap, edge_color=edges_cmap, labels = nodes_labelmap,with_labels=True, width=4)
+    nx.draw_networkx_edge_labels(G,pos,edge_labels=dict(edge_labelmap), alpha = .8, width = .8)
+    plt.show()
+
     
-write_xml()
-auswertung()
+#write_xml()
+#auswertung()
+visualize('Traning\RFC\Bicycles.xml')
+visualize('Traning\ANC\WhereToMadrid\Highlights_of_the_Prado_Museum.xml')
