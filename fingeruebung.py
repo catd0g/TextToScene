@@ -178,7 +178,7 @@ def visualize(file):
     plt.show()
 
     
-#write_xml()
-#auswertung()
+write_xml()
+auswertung()
 visualize('Traning\RFC\Bicycles.xml')
 visualize('Traning\ANC\WhereToMadrid\Highlights_of_the_Prado_Museum.xml')
