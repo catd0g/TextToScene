@@ -1,38 +1,43 @@
 import os
 import json
 import spacy
+import matplotlib.pyplot as plt
 import xml.etree.ElementTree as ET
 
 nlp = spacy.load("en_core_web_sm")
 
-L = []
-for root, dirs, files in os.walk('Traning'):
-    L.append((root,dirs,files))
 
-data = []
 
-"""
-for i in L:
-    if(i[2] != []):
-        for k in i[2]:
-            if(k.find(".xml") != -1):
-                print(i[0]+"\\"+k)
-                tree = ET.parse(i[0]+"\\"+k)
-                root = tree.getroot()
-                print(root[0].text)
-"""
+def treewalk_for_xml_files(rootdir):
+    L = []
+    filelist = []
+    for root, dirs, files in os.walk(rootdir):
+        L.append((root,dirs,files))
+
+    for i in L:
+        if(i[2] != []):
+            for k in i[2]:
+                if(k.find(".xml") != -1):
+                    print(i[0]+"\\"+k)
+                    filelist.append(i[0]+"\\"+k)
+    return filelist
+
 
 def retrieve_data(file):
     tree = ET.parse(file)
     root = tree.getroot()
-    a = ET.Element('SpaceEvalPlusPoS')
+    a = ET.Element('ENTRY')
+    a.tail = '\n'
     b = ET.SubElement(a, 'DATA')
+    b.append(root[1])
+    b.tail = '\n'
     b.set("source", file)
     c = ET.SubElement(b,'TEXT')
-    d = ET.SubElement(b,'TOKENS')
     c.text = root[0].text
     c.tail = '\n'
-    b.append(root[1])
+    d = ET.SubElement(b,'TOKENS')
+    d.tail = '\n'
+    f = ET.SubElement(b,'SENTENCES')
     #print(b.findall('.//TAGS/METALINK'))
     doc = nlp(root[0].text)
     for token in doc:
@@ -46,13 +51,61 @@ def retrieve_data(file):
         e.set('is_alpha', str(token.is_alpha))
         e.set('is_stop',str(token.is_stop))
         e.tail = '\n'
+    for sent in doc.sents:
+        g = ET.SubElement(f,'SENTENCE')
+        g.text = str(sent.text)
+        g.set('length', str(len(sent.text)))
+        g.tail = '\n'
+    return a
+
+def write_xml():
+    filelist = treewalk_for_xml_files('Traning')
+    a = ET.Element('SpacePlusPos')
+    for file in filelist:
+        a.append(retrieve_data(file))
     new_root = ET.ElementTree(a)
-    new_root.write("test.xml")
-    return 
+    new_root.write('combined_data.xml')
 
-def write_xml(data):
-    return
+def count_elements(list):
+    literal = []
+    count = []
+    for entry in list:
+        try:
+            pos = literal.index(entry)
+            count[pos]+=1
+        except ValueError:
+            literal.append(entry)
+            count.append(1)
+    return [(literal[x],count[x]) for x in range(0,len(literal))]
 
-
-retrieve_data('Traning\RFC\Bicycles.xml')
-
+def auswertung():
+    tree = ET.parse('combined_data.xml')
+    list1 = [x.tag for x in tree.findall('.//TAGS/*')]
+    list1 = count_elements(list1)
+    list2 = [x.get('pos') for x in tree.findall('.//TOKEN')]
+    list2 = count_elements(list2)
+    list3 = [x.get('length') for x in tree.findall('.//SENTENCE')]
+    list3 = count_elements(list3)
+    list3.sort(key=lambda x: int(x[0]))
+    list4 = [x.get('relType') for x in tree.findall('.//TAGS/QSLINK')]
+    list4 = count_elements(list4)
+    print("Auswertung:")
+    print(" -- Anzahl PoS Tags:")
+    for x in list2:
+        print(x)
+    print('\n')    
+    print("SpacialEntities: " + str([i[1] for i in list1 if i[0] == 'SPATIAL_ENTITY'].pop()))
+    print("Places: " + str([i[1] for i in list1 if i[0] == 'PLACE'].pop()))
+    print("Motions: " + str([i[1] for i in list1 if i[0] == 'MOTION'].pop()))
+    print("Signals: " + str([i[1] for i in list1 if i[0] == 'SPATIAL_SIGNAL'].pop() + [i[1] for i in list1 if i[0]== 'MOTION_SIGNAL'].pop()))
+    print("QsLinks: " + str([i[1] for i in list1 if i[0] == 'QSLINK'].pop()))
+    print("OLinks: " + str([i[1] for i in list1 if i[0] == 'OLINK'].pop()))
+    print('\n -- QsLink Typen:')
+    for x in list4:
+        print(x)
+    #plt.plot([int(x[0]) for x in list3],[x[1] for x in list3])
+    #plt.show()
+    
+#retrieve_data('Traning\RFC\Bicycles.xml')
+#write_xml()
+auswertung()
